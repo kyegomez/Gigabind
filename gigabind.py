@@ -88,8 +88,8 @@ async def process_data(input_data: InputData = None, audio: UploadFile = File(No
     }
 
     return result
-image =  modal.create_image('python:3.8')
 
-stub = Stub('gigabind')
-image = Image('python:3.8')
-stub.image = image
+custom_image = Image.debian_slim()
+
+stub = Stub("gigabind", image=custom_image)
+
