@@ -13,15 +13,23 @@ from typing import Dict
 import torch
 import torch.nn as nn
 
-from models.helpers import (EinOpsRearrange, LearnableLogitScaling, Normalize,
-                            SelectElement, SelectEOSAndProject)
-from models.multimodal_preprocessors import (AudioPreprocessor,
-                                             IMUPreprocessor, PadIm2Video,
-                                             PatchEmbedGeneric,
-                                             RGBDTPreprocessor,
-                                             SpatioTemporalPosEmbeddingHelper,
-                                             TextPreprocessor,
-                                             ThermalPreprocessor)
+from models.helpers import (
+    EinOpsRearrange,
+    LearnableLogitScaling,
+    Normalize,
+    SelectElement,
+    SelectEOSAndProject,
+)
+from models.multimodal_preprocessors import (
+    AudioPreprocessor,
+    IMUPreprocessor,
+    PadIm2Video,
+    PatchEmbedGeneric,
+    RGBDTPreprocessor,
+    SpatioTemporalPosEmbeddingHelper,
+    TextPreprocessor,
+    ThermalPreprocessor,
+)
 from models.transformer import MultiheadAttention, SimpleTransformer
 
 ModalityType = SimpleNamespace(
@@ -506,23 +514,47 @@ def imagebind_huge(pretrained=False):
     return model
 
 
-def save_module(module_dict: nn.ModuleDict, module_name: str = "",
-                checkpoint_dir: str = "./.checkpoints/full", postfix: str = "_last",
-                extension: str = "pth"):
+def save_module(
+    module_dict: nn.ModuleDict,
+    module_name: str = "",
+    checkpoint_dir: str = "./.checkpoints/full",
+    postfix: str = "_last",
+    extension: str = "pth",
+):
     try:
-        torch.save(module_dict.state_dict(),
-                   os.path.join(checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}"))
+        torch.save(
+            module_dict.state_dict(),
+            os.path.join(
+                checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}"
+            ),
+        )
         logging.info(f"Saved parameters for module {module_name} to {checkpoint_dir}.")
     except FileNotFoundError:
-        logging.warning(f"Could not save module parameters for {module_name} to {checkpoint_dir}.")
+        logging.warning(
+            f"Could not save module parameters for {module_name} to {checkpoint_dir}."
+        )
 
 
-def load_module(module_dict: nn.ModuleDict, module_name: str = "",
-                checkpoint_dir: str = "./.checkpoints/full", postfix: str = "_last",
-                extension: str = "pth"):
+def load_module(
+    module_dict: nn.ModuleDict,
+    module_name: str = "",
+    checkpoint_dir: str = "./.checkpoints/full",
+    postfix: str = "_last",
+    extension: str = "pth",
+):
     try:
-        module_dict.load_state_dict(torch.load(
-                   os.path.join(checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}")), strict=False)
-        logging.info(f"Loaded parameters for module {module_name} from {checkpoint_dir}.")
+        module_dict.load_state_dict(
+            torch.load(
+                os.path.join(
+                    checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}"
+                )
+            ),
+            strict=False,
+        )
+        logging.info(
+            f"Loaded parameters for module {module_name} from {checkpoint_dir}."
+        )
     except FileNotFoundError:
-        logging.warning(f"Could not load module parameters for {module_name} from {checkpoint_dir}.")
+        logging.warning(
+            f"Could not load module parameters for {module_name} from {checkpoint_dir}."
+        )

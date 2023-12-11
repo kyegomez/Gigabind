@@ -20,40 +20,79 @@ from torch.nn.parameter import Parameter
 from models.transformer import SimpleTransformer
 
 
-def apply_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer], rank: int,
-                               layer_idxs: Optional[Dict[SimpleNamespace, List[int]]] = None,
-                               modality_names: List[SimpleNamespace] = None):
+def apply_lora_modality_trunks(
+    modality_trunks: Dict[str, SimpleTransformer],
+    rank: int,
+    layer_idxs: Optional[Dict[SimpleNamespace, List[int]]] = None,
+    modality_names: List[SimpleNamespace] = None,
+):
     if modality_names is None:
         modality_names = list(modality_trunks.keys())
     if layer_idxs is None:
         layer_idxs = {}
-    return nn.ModuleDict({modality_name: LoRA_SimpleTransformer(modality_trunk, rank, layer_idxs.get(modality_name, None)) for
-                          modality_name, modality_trunk in modality_trunks.items() if modality_name in modality_names})
+    return nn.ModuleDict(
+        {
+            modality_name: LoRA_SimpleTransformer(
+                modality_trunk, rank, layer_idxs.get(modality_name, None)
+            )
+            for modality_name, modality_trunk in modality_trunks.items()
+            if modality_name in modality_names
+        }
+    )
 
 
-def save_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
-                              checkpoint_dir: str = "./.checkpoints/lora", postfix: str = "_last", extension: str = "safetensors"):
+def save_lora_modality_trunks(
+    modality_trunks: Dict[str, SimpleTransformer],
+    checkpoint_dir: str = "./.checkpoints/lora",
+    postfix: str = "_last",
+    extension: str = "safetensors",
+):
     for modality_name, modality_trunk in modality_trunks.items():
         try:
             if isinstance(modality_trunk, LoRA_SimpleTransformer):
-                modality_trunk.save_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
-                logging.info(f"Saved LoRA parameters for modality {modality_name} to {checkpoint_dir}.")
+                modality_trunk.save_lora_parameters(
+                    os.path.join(
+                        checkpoint_dir,
+                        f"imagebind-lora-{modality_name}{postfix}.{extension}",
+                    )
+                )
+                logging.info(
+                    f"Saved LoRA parameters for modality {modality_name} to {checkpoint_dir}."
+                )
         except FileNotFoundError:
-            logging.warning(f"Could not save LoRA parameters for modality {modality_name} to {checkpoint_dir}.")
+            logging.warning(
+                f"Could not save LoRA parameters for modality {modality_name} to {checkpoint_dir}."
+            )
 
 
-def load_lora_modality_trunks(modality_trunks: Dict[str, SimpleTransformer],
-                              checkpoint_dir: str = "./.checkpoints/lora", postfix: str = "_last", extension: str = "safetensors"):
-
+def load_lora_modality_trunks(
+    modality_trunks: Dict[str, SimpleTransformer],
+    checkpoint_dir: str = "./.checkpoints/lora",
+    postfix: str = "_last",
+    extension: str = "safetensors",
+):
     for modality_name, modality_trunk in modality_trunks.items():
         try:
             if isinstance(modality_trunk, LoRA_SimpleTransformer):
-                modality_trunk.load_lora_parameters(os.path.join(checkpoint_dir, f"imagebind-lora-{modality_name}{postfix}.{extension}"))
-                logging.info(f"Loaded LoRA parameters for modality {modality_name} from {checkpoint_dir}.")
+                modality_trunk.load_lora_parameters(
+                    os.path.join(
+                        checkpoint_dir,
+                        f"imagebind-lora-{modality_name}{postfix}.{extension}",
+                    )
+                )
+                logging.info(
+                    f"Loaded LoRA parameters for modality {modality_name} from {checkpoint_dir}."
+                )
         except FileNotFoundError:
-            logging.warning(f"Could not find LoRA parameters for modality {modality_name} in {checkpoint_dir}.")
-            logging.warning("If you are training the sub-model from scratch, this is expected.")
-            logging.warning("If you are loading parts of a pre-trained model, this is expected for some modalities.")
+            logging.warning(
+                f"Could not find LoRA parameters for modality {modality_name} in {checkpoint_dir}."
+            )
+            logging.warning(
+                "If you are training the sub-model from scratch, this is expected."
+            )
+            logging.warning(
+                "If you are loading parts of a pre-trained model, this is expected for some modalities."
+            )
 
 
 class _LoRALayer(nn.Module):
@@ -64,7 +103,6 @@ class _LoRALayer(nn.Module):
         self.w_b = w_b
 
     def forward(self, x: torch.Tensor, attn_mask: torch.Tensor, **kwargs):
-
         x = self.w(x, attn_mask=attn_mask) + self.w_b(self.w_a(x))
         return x
 
@@ -85,11 +123,16 @@ class LoRA_SimpleTransformer(nn.Module):
         torch.Size([1, 1000])
     """
 
-    def __init__(self, transformer_model: SimpleTransformer, rank: int, lora_layer_idxs: Optional[List[int]] = None):
+    def __init__(
+        self,
+        transformer_model: SimpleTransformer,
+        rank: int,
+        lora_layer_idxs: Optional[List[int]] = None,
+    ):
         super(LoRA_SimpleTransformer, self).__init__()
 
         assert rank > 0
-        self.base_dim = transformer_model.blocks[0].attn.in_proj_bias.size()[0]//3
+        self.base_dim = transformer_model.blocks[0].attn.in_proj_bias.size()[0] // 3
         dim = self.base_dim
         if lora_layer_idxs is not None:
             self.lora_layer_idxs = lora_layer_idxs
@@ -161,5 +204,3 @@ class LoRA_SimpleTransformer(nn.Module):
 
     def forward(self, tokens: torch.Tensor, **kwargs) -> Tensor:
         return self.lora_model(tokens)
-
-
