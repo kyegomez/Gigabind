@@ -19,8 +19,29 @@ class InputData(BaseModel):
     audio: Optional[UploadFile] = Field(None)
     vision: Optional[UploadFile] = Field(None)
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from modal import web_endpoint, Secret
+
+auth_scheme = HTTPBearer()
+
+def authenticate(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
+    api_key = Secret.from_name("api_key").get()
+    if token.credentials != api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return token
+
 @app.post("/process")
-async def process_data(input_data: InputData = None, audio: UploadFile = File(None), vision: UploadFile = File(None)):
+@web_endpoint()
+async def process_data(input_data: InputData = None, 
+                       audio: UploadFile = File(None), 
+                       vision: UploadFile = File(None),
+                       token: HTTPAuthorizationCredentials = Depends(authenticate)):
+                       
     # Load your model here (if not loaded)
     logging.basicConfig(level=logging.INFO, force=True)
 
