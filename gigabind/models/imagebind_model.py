@@ -13,14 +13,14 @@ from typing import Dict
 import torch
 import torch.nn as nn
 
-from models.helpers import (
+from gigabind.models.helpers import (
     EinOpsRearrange,
     LearnableLogitScaling,
     Normalize,
     SelectElement,
     SelectEOSAndProject,
 )
-from models.multimodal_preprocessors import (
+from gigabind.models.multimodal_preprocessors import (
     AudioPreprocessor,
     IMUPreprocessor,
     PadIm2Video,
@@ -30,7 +30,7 @@ from models.multimodal_preprocessors import (
     TextPreprocessor,
     ThermalPreprocessor,
 )
-from models.transformer import MultiheadAttention, SimpleTransformer
+from gigabind.models.transformer import MultiheadAttention, SimpleTransformer
 
 ModalityType = SimpleNamespace(
     VISION="vision",

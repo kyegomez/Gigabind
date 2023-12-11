@@ -36,7 +36,7 @@ from torchvision import transforms
 
 from models import imagebind_model
 from models import lora as LoRA
-from models.imagebind_model import ModalityType, load_module, save_module
+from gigabind.models.imagebind_model import ModalityType, load_module, save_module
 
 logging.basicConfig(level=logging.INFO, force=True)
 

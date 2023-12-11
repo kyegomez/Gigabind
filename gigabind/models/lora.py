@@ -17,7 +17,7 @@ from safetensors.torch import save_file
 from torch import Tensor
 from torch.nn.parameter import Parameter
 
-from models.transformer import SimpleTransformer
+from gigabind.models.transformer import SimpleTransformer
 
 
 def apply_lora_modality_trunks(

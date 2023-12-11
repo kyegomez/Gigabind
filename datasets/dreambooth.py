@@ -4,8 +4,8 @@ from typing import Optional, Callable
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset
 
-from models.imagebind_model import ModalityType
-import data
+from gigabind.models.imagebind_model import ModalityType
+import gigabind.data as data
 
 
 class DreamBoothDataset(Dataset):

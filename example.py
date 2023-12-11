@@ -1,10 +1,10 @@
 import logging
 import torch
-import data
+import gigabind.data as data
 
-from models import imagebind_model
-from models.imagebind_model import ModalityType, load_module
-from models import lora as LoRA
+from gigabind.models import imagebind_model
+from gigabind.models.imagebind_model import ModalityType, load_module
+from gigabind.models import lora as LoRA
 
 logging.basicConfig(level=logging.INFO, force=True)
 
