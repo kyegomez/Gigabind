@@ -14,6 +14,10 @@ from models import lora as LoRA
 
 app = FastAPI()
 
+custom_image = Image.debian_slim()
+stub = Stub("gigabind",
+            image=custom_image)
+
 class InputData(BaseModel):
     text: Optional[List[str]] = Field(None)
     audio: Optional[UploadFile] = Field(None)
@@ -35,7 +39,7 @@ def authenticate(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
         )
     return token
 
-@app.post("/process")
+@stub.function()
 @web_endpoint()
 async def process_data(input_data: InputData = None, 
                        audio: UploadFile = File(None), 
