@@ -150,9 +150,14 @@ print(
 
 
 ```
+# Gigabind API Interaction Guide
 
+```python
+from modal.sdk import Client
 
-
+client = Client()
+result = client.call("gigabind", {"input_data": {"text": ["Hello, world!"]}})
+print(result)
 
 
 ## Contributing
