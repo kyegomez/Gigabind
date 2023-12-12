@@ -11,8 +11,10 @@ import modal
 from models import imagebind_model
 from models.imagebind_model import ModalityType, load_module
 from models import lora as LoRA
+from fastapi.security import HTTPBearer
 
 app = FastAPI()
+# app = modal.App('gigabind')
 auth_scheme = HTTPBearer()
 custom_image = Image.debian_slim()
 stub = Stub("gigabind", image=custom_image)
