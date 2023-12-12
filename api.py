@@ -13,6 +13,6 @@ def get_imagebind(
     audio: str = None,
     list_texts: List[str] = None,
     list_img: List[str] = None,
-    list_audio: List[str] = None
+    list_audio: List[str] = None,
 ):
     pass
