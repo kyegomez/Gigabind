@@ -11,19 +11,25 @@ import modal
 from models import imagebind_model
 from models.imagebind_model import ModalityType, load_module
 from models import lora as LoRA
+from fastapi.security import HTTPBearer
 
 app = FastAPI()
+# app = modal.App('gigabind')
+auth_scheme = HTTPBearer()
+custom_image = Image.debian_slim()
+stub = Stub("gigabind", image=custom_image)
+
 
 class InputData(BaseModel):
     text: Optional[List[str]] = Field(None)
     audio: Optional[UploadFile] = Field(None)
     vision: Optional[UploadFile] = Field(None)
 
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from modal import web_endpoint, Secret
 
-auth_scheme = HTTPBearer()
 
 def authenticate(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     api_key = Secret.from_name("api_key").get()
@@ -35,13 +41,15 @@ def authenticate(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
         )
     return token
 
-@app.post("/process")
+
+@stub.function()
 @web_endpoint()
-async def process_data(input_data: InputData = None, 
-                       audio: UploadFile = File(None), 
-                       vision: UploadFile = File(None),
-                       token: HTTPAuthorizationCredentials = Depends(authenticate)):
-                       
+async def process_data(
+    input_data: InputData = None,
+    audio: UploadFile = File(None),
+    vision: UploadFile = File(None),
+    token: HTTPAuthorizationCredentials = Depends(authenticate),
+):
     # Load your model here (if not loaded)
     logging.basicConfig(level=logging.INFO, force=True)
 
@@ -49,6 +57,7 @@ async def process_data(input_data: InputData = None,
     linear_probing = False
     device = "cpu"  # "cuda:0" if torch.cuda.is_available() else "cpu"
     load_head_post_proc_finetuned = True
+    model = imagebind_model.imagebind_huge(pretrained=True)
 
     assert not (linear_probing and lora), (
         "Linear probing is a subset of LoRA training procedure for ImageBind. "
@@ -62,14 +71,12 @@ async def process_data(input_data: InputData = None,
         # This assumes proper loading of all params but results in shift from original dist in case of LoRA
         lora_factor = 1
 
-    # Instantiate model
-    model = imagebind_model.imagebind_huge(pretrained=True)
-    # Your existing code here
-
     # Prepare your data
     inputs = {}
     if input_data and input_data.text:
-        inputs[ModalityType.TEXT] = data.load_and_transform_text(input_data.text, device)
+        inputs[ModalityType.TEXT] = data.load_and_transform_text(
+            input_data.text, device
+        )
     if audio:
         audio_filename = f"/tmp/{audio.filename}"
         with open(audio_filename, "wb") as buffer:
@@ -80,12 +87,12 @@ async def process_data(input_data: InputData = None,
         vision_filename = f"/tmp/{vision.filename}"
         with open(vision_filename, "wb") as buffer:
             buffer.write(await vision.read())
-        vision_data = data.load_and_transform_vision_data([vision_filename], device, to_tensor=True)
+        vision_data = data.load_and_transform_vision_data(
+            [vision_filename], device, to_tensor=True
+        )
         inputs[ModalityType.VISION] = vision_data
-
     if not inputs:
         raise HTTPException(status_code=400, detail="No input data provided")
-
     # Then, you can process your data using your model and return the result
     with torch.no_grad():
         embeddings = model(inputs)
@@ -110,7 +117,6 @@ async def process_data(input_data: InputData = None,
 
     return result
 
+
 custom_image = Image.debian_slim()
-
 stub = Stub("gigabind", image=custom_image)
-
