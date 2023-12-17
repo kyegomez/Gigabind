@@ -18,12 +18,15 @@ from modal import web_endpoint, Secret
 
 app = FastAPI()
 
+
 class InputData(BaseModel):
     text: Optional[List[str]] = Field(None)
     audio: Optional[UploadFile] = Field(None)
     vision: Optional[UploadFile] = Field(None)
 
+
 auth_scheme = HTTPBearer()
+
 
 def authenticate(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     api_key = Secret.from_name("api_key").get()
@@ -35,13 +38,15 @@ def authenticate(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
         )
     return token
 
+
 @app.post("/process")
 @web_endpoint()
-async def process_data(input_data: InputData = None, 
-                       audio: UploadFile = File(None), 
-                       vision: UploadFile = File(None),
-                       token: HTTPAuthorizationCredentials = Depends(authenticate)):
-                       
+async def process_data(
+    input_data: InputData = None,
+    audio: UploadFile = File(None),
+    vision: UploadFile = File(None),
+    token: HTTPAuthorizationCredentials = Depends(authenticate),
+):
     # Load your model here (if not loaded)
     logging.basicConfig(level=logging.INFO, force=True)
 
@@ -69,7 +74,9 @@ async def process_data(input_data: InputData = None,
     # Prepare your data
     inputs = {}
     if input_data and input_data.text:
-        inputs[ModalityType.TEXT] = data.load_and_transform_text(input_data.text, device)
+        inputs[ModalityType.TEXT] = data.load_and_transform_text(
+            input_data.text, device
+        )
     if audio:
         audio_filename = f"/tmp/{audio.filename}"
         with open(audio_filename, "wb") as buffer:
@@ -80,7 +87,9 @@ async def process_data(input_data: InputData = None,
         vision_filename = f"/tmp/{vision.filename}"
         with open(vision_filename, "wb") as buffer:
             buffer.write(await vision.read())
-        vision_data = data.load_and_transform_vision_data([vision_filename], device, to_tensor=True)
+        vision_data = data.load_and_transform_vision_data(
+            [vision_filename], device, to_tensor=True
+        )
         inputs[ModalityType.VISION] = vision_data
 
     if not inputs:
@@ -110,7 +119,7 @@ async def process_data(input_data: InputData = None,
 
     return result
 
+
 custom_image = Image.debian_slim()
 
 stub = Stub("gigabind", image=custom_image)
-
