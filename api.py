@@ -88,16 +88,21 @@ class EmbeddingRequest(BaseModel):
 @app.post("/embeddings/")
 def get_embeddings(request: EmbeddingRequest):
     try:
-        # Load data
-        inputs = {
-            ModalityType.TEXT: data.load_and_transform_text(request.text_list, device),
-            ModalityType.VISION: data.load_and_transform_vision_data(
+        inputs = {}
+
+        if request.text_list is not None:
+            inputs[ModalityType.TEXT] = data.load_and_transform_text(request.text_list, device)
+
+        if request.image_paths is not None:
+            inputs[ModalityType.VISION] = data.load_and_transform_vision_data(
                 request.image_paths, device, to_tensor=True
-            ),
-            ModalityType.AUDIO: data.load_and_transform_audio_data(
-                request.audio_paths, device
-            ),
-        }
+            )
+
+        if request.audio_paths is not None:
+            inputs[ModalityType.AUDIO] = data.load_and_transform_audio_data(request.audio_paths, device)
+
+        if not inputs:
+            raise ValueError("At least one type of input (text, image, or audio) must be provided.")
 
         with torch.no_grad():
             embeddings = model(inputs)
