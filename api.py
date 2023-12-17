@@ -5,15 +5,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from gigabind import data
-from gigabind.models import imagebind_model
+from gigabind.models import imagebind_model, lora
 from gigabind.models.imagebind_model import ModalityType, load_module
-from gigabind.models import lora
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, force=True)
 
 # Initialize FastAPI app
-app = FastAPI()
+app = FastAPI(debug=True)
 
 # Model Configuration
 linear_probing = False
@@ -88,39 +87,90 @@ class EmbeddingRequest(BaseModel):
 @app.post("/embeddings/")
 def get_embeddings(request: EmbeddingRequest):
     try:
-        # Load data
-        inputs = {
-            ModalityType.TEXT: data.load_and_transform_text(request.text_list, device),
-            ModalityType.VISION: data.load_and_transform_vision_data(
+        inputs = {}
+
+        if request.text_list is not None:
+            inputs[ModalityType.TEXT] = data.load_and_transform_text(
+                request.text_list, device
+            )
+
+        if request.image_paths is not None:
+            inputs[ModalityType.VISION] = data.load_and_transform_vision_data(
                 request.image_paths, device, to_tensor=True
-            ),
-            ModalityType.AUDIO: data.load_and_transform_audio_data(
+            )
+
+        if request.audio_paths is not None:
+            inputs[ModalityType.AUDIO] = data.load_and_transform_audio_data(
                 request.audio_paths, device
-            ),
-        }
+            )
+
+        if not inputs:
+            raise ValueError(
+                "At least one type of input (text, image, or audio) must be provided."
+            )
 
         with torch.no_grad():
             embeddings = model(inputs)
 
         # Process and return embeddings
-        return {
-            "vision_x_text": torch.softmax(
+        # Initialize an empty dictionary to store the results
+        embeddings_dict = {}
+
+        # Check if vision modality is present
+        if ModalityType.VISION in inputs:
+            embeddings_dict["vision"] = torch.softmax(
+                embeddings[ModalityType.VISION],
+                dim=-1,
+            ).tolist()
+
+        # Check if text modality is present
+        if ModalityType.TEXT in inputs:
+            embeddings_dict["text"] = torch.softmax(
+                embeddings[ModalityType.TEXT],
+                dim=-1,
+            ).tolist()
+
+        # Check if audio modality is present
+        if ModalityType.AUDIO in inputs:
+            embeddings_dict["audio"] = torch.softmax(
+                embeddings[ModalityType.AUDIO],
+                dim=-1,
+            ).tolist()
+
+        # Check if both vision and text modalities are present
+        if ModalityType.VISION in inputs and ModalityType.TEXT in inputs:
+            embeddings_dict["vision_x_text"] = torch.softmax(
                 embeddings[ModalityType.VISION]
                 @ embeddings[ModalityType.TEXT].T
                 * (lora_factor if lora else 1),
                 dim=-1,
-            ).tolist(),
-            "audio_x_text": torch.softmax(
+            ).tolist()
+
+        # Check if both audio and text modalities are present
+        if ModalityType.AUDIO in inputs and ModalityType.TEXT in inputs:
+            embeddings_dict["audio_x_text"] = torch.softmax(
                 embeddings[ModalityType.AUDIO]
                 @ embeddings[ModalityType.TEXT].T
                 * (lora_factor if lora else 1),
                 dim=-1,
-            ).tolist(),
-            "vision_x_audio": torch.softmax(
+            ).tolist()
+
+        # Check if both vision and audio modalities are present
+        if ModalityType.VISION in inputs and ModalityType.AUDIO in inputs:
+            embeddings_dict["vision_x_audio"] = torch.softmax(
                 embeddings[ModalityType.VISION] @ embeddings[ModalityType.AUDIO].T,
                 dim=-1,
-            ).tolist(),
+            ).tolist()
+
+        # Return the computed embeddings
+        response = {
+            "embeddings": embeddings_dict,
+            "modality_type": list(
+                inputs.keys()
+            ),  # The types of modalities in the inputs
+            "model_name": "gigabind_huge",
         }
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
