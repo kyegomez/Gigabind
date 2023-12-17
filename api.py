@@ -114,24 +114,36 @@ def get_embeddings(request: EmbeddingRequest):
             embeddings = model(inputs)
 
         # Process and return embeddings
-        return {
-            "vision_x_text": torch.softmax(
+        # Initialize an empty dictionary to store the results
+        embeddings_dict = {}
+
+        # Check if both vision and text modalities are present
+        if ModalityType.VISION in inputs and ModalityType.TEXT in inputs:
+            embeddings_dict["vision_x_text"] = torch.softmax(
                 embeddings[ModalityType.VISION]
                 @ embeddings[ModalityType.TEXT].T
                 * (lora_factor if lora else 1),
                 dim=-1,
-            ).tolist(),
-            "audio_x_text": torch.softmax(
+            ).tolist()
+
+        # Check if both audio and text modalities are present
+        if ModalityType.AUDIO in inputs and ModalityType.TEXT in inputs:
+            embeddings_dict["audio_x_text"] = torch.softmax(
                 embeddings[ModalityType.AUDIO]
                 @ embeddings[ModalityType.TEXT].T
                 * (lora_factor if lora else 1),
                 dim=-1,
-            ).tolist(),
-            "vision_x_audio": torch.softmax(
+            ).tolist()
+
+        # Check if both vision and audio modalities are present
+        if ModalityType.VISION in inputs and ModalityType.AUDIO in inputs:
+            embeddings_dict["vision_x_audio"] = torch.softmax(
                 embeddings[ModalityType.VISION] @ embeddings[ModalityType.AUDIO].T,
                 dim=-1,
-            ).tolist(),
-        }
+            ).tolist()
+
+        # Return the computed embeddings
+        return embeddings_dict
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
