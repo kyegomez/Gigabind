@@ -5,15 +5,14 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from gigabind import data
-from gigabind.models import imagebind_model
+from gigabind.models import imagebind_model, lora
 from gigabind.models.imagebind_model import ModalityType, load_module
-from gigabind.models import lora
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, force=True)
 
 # Initialize FastAPI app
-app = FastAPI()
+app = FastAPI(debug=True)
 
 # Model Configuration
 linear_probing = False
@@ -116,7 +115,7 @@ def get_embeddings(request: EmbeddingRequest):
         # Process and return embeddings
         # Initialize an empty dictionary to store the results
         embeddings_dict = {}
-        
+
         # Check if vision modality is present
         if ModalityType.VISION in inputs:
             embeddings_dict["vision"] = torch.softmax(
@@ -164,7 +163,14 @@ def get_embeddings(request: EmbeddingRequest):
             ).tolist()
 
         # Return the computed embeddings
-        return embeddings_dict
+        response = {
+            "embeddings": embeddings_dict,
+            "modality_type": list(
+                inputs.keys()
+            ),  # The types of modalities in the inputs
+            "model_name": "gigabind_huge",
+        }
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
