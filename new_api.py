@@ -24,6 +24,18 @@ class EmbeddingRequest(BaseModel):
 
 @app.post("/embeddings/")
 def get_embeddings(request: EmbeddingRequest):
+    """Get embeddings from text, image, and audio inputs
+
+    Args:
+        request (EmbeddingRequest): _description_
+
+    Raises:
+        HTTPException: _description_
+        HTTPException: _description_
+
+    Returns:
+        _type_: _description_
+    """
     try:
         inputs = {}
 
