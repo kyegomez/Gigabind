@@ -29,11 +29,11 @@ def get_embeddings(request: EmbeddingRequest):
         if request.text is not None:
             inputs['text'] = request.text
 
-        if request.img is not None:
-            inputs['img'] = request.img
+        # if request.img is not None:
+        #     inputs['img'] = request.img
 
-        if request.audio is not None:
-            inputs['audio'] = request.audio
+        # if request.audio is not None:
+        #     inputs['audio'] = request.audio
 
         if not inputs:
             raise HTTPException(status_code=400, detail="No input provided")
