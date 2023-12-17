@@ -4,13 +4,13 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from typing import List, Optional
 import logging
 import torch
-import data
+from gigabind import data
 import os
 import modal
 
-from models import imagebind_model
-from models.imagebind_model import ModalityType, load_module
-from models import lora as LoRA
+from gigabind.models import imagebind_model
+from gigabind.models.imagebind_model import ModalityType, load_module
+from gigabind.models import lora as LoRA
 
 app = FastAPI()
 
