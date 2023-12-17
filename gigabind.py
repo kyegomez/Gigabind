@@ -11,6 +11,10 @@ import modal
 from gigabind.models import imagebind_model
 from gigabind.models.imagebind_model import ModalityType, load_module
 from gigabind.models import lora as LoRA
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from modal import web_endpoint, Secret
+
 
 app = FastAPI()
 
@@ -18,10 +22,6 @@ class InputData(BaseModel):
     text: Optional[List[str]] = Field(None)
     audio: Optional[UploadFile] = Field(None)
     vision: Optional[UploadFile] = Field(None)
-
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from modal import web_endpoint, Secret
 
 auth_scheme = HTTPBearer()
 

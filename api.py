@@ -16,9 +16,8 @@ logging.basicConfig(level=logging.INFO, force=True)
 app = FastAPI()
 
 # Model Configuration
-lora = True
 linear_probing = False
-device = "cpu"  # or "cuda:0" if torch.cuda.is_available()
+device = "cuda:0"  # or "cuda:0" if torch.cuda.is_available()
 load_head_post_proc_finetuned = True
 
 # Ensure configuration is valid
