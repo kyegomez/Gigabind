@@ -116,6 +116,27 @@ def get_embeddings(request: EmbeddingRequest):
         # Process and return embeddings
         # Initialize an empty dictionary to store the results
         embeddings_dict = {}
+        
+        # Check if vision modality is present
+        if ModalityType.VISION in inputs:
+            embeddings_dict["vision"] = torch.softmax(
+                embeddings[ModalityType.VISION],
+                dim=-1,
+            ).tolist()
+
+        # Check if text modality is present
+        if ModalityType.TEXT in inputs:
+            embeddings_dict["text"] = torch.softmax(
+                embeddings[ModalityType.TEXT],
+                dim=-1,
+            ).tolist()
+
+        # Check if audio modality is present
+        if ModalityType.AUDIO in inputs:
+            embeddings_dict["audio"] = torch.softmax(
+                embeddings[ModalityType.AUDIO],
+                dim=-1,
+            ).tolist()
 
         # Check if both vision and text modalities are present
         if ModalityType.VISION in inputs and ModalityType.TEXT in inputs:

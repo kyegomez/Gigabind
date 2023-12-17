@@ -1,5 +1,5 @@
 curl -X 'POST' \
-  'http://localhost:8000/embeddings/' \
+  'http://172.16.10.14:8000/embeddings/' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
