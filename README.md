@@ -150,24 +150,10 @@ print(
 
 
 ```
-# Gigabind API Interaction Guide
 
-```python
-from modal.sdk import Client
+# Citation
 
-client = Client()
-result = client.call("gigabind", {"input_data": {"text": ["Hello, world!"]}})
-print(result)
-
-
-## Contributing
-See [contributing](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md).
-
-## Citing ImageBind
-
-If you find this repository useful, please consider giving a star :star: and citation
-
-```
+```bibtex
 @inproceedings{girdhar2023imagebind,
   title={ImageBind: One Embedding Space To Bind Them All},
   author={Girdhar, Rohit and El-Nouby, Alaaeldin and Liu, Zhuang
