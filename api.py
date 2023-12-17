@@ -4,7 +4,7 @@ import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from gigabind.data import data
+from gigabind import data
 from gigabind.models import imagebind_model
 from gigabind.models.imagebind_model import ModalityType, load_module
 from gigabind.models.lora import LoRA
