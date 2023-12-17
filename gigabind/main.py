@@ -44,7 +44,7 @@ class Gigabind(nn.Module):
         self,
         lora=False,
         linear_probing=False,
-        device: Callable = detect_device,
+        device: Callable = "cuda:0",
         load_head_post_proc_finetuned=True,
         *args,
         **kwargs,
