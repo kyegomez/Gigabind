@@ -9,7 +9,7 @@ headers = {'Content-Type': 'application/json'}
 
 # Define the data
 data = {
-    'text_list': ['Hello, world!', 'Goodbye, world!'],
+    'text': 'Hello, world!',
 }
 
 # Send the POST request
