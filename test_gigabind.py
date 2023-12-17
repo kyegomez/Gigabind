@@ -21,7 +21,9 @@ def test_run_img(mock_model):
     mock_model.return_value = {"embeddings": "test"}
     gigabind = Gigabind()
     response = gigabind.run(img=".assets/bird_image.jpg")
-    mock_model.assert_called_once_with({"img": ".assets/bird_image.jpg"})
+    mock_model.assert_called_once_with(
+        {"img": ".assets/bird_image.jpg"}
+    )
     assert response == {
         "embeddings": "test",
         "modality_type": ["img"],
@@ -34,7 +36,9 @@ def test_run_audio(mock_model):
     mock_model.return_value = {"embeddings": "test"}
     gigabind = Gigabind()
     response = gigabind.run(audio=".assets/bird_audio.wav")
-    mock_model.assert_called_once_with({"audio": ".assets/bird_audio.wav"})
+    mock_model.assert_called_once_with(
+        {"audio": ".assets/bird_audio.wav"}
+    )
     assert response == {
         "embeddings": "test",
         "modality_type": ["audio"],
@@ -100,7 +104,9 @@ def test_run_invalid_modality(mock_model):
 def test_run_multiple_modalities(mock_model):
     mock_model.return_value = {"embeddings": "test"}
     gigabind = Gigabind()
-    response = gigabind.run(text="Hello, world!", img=".assets/car_image.jpg")
+    response = gigabind.run(
+        text="Hello, world!", img=".assets/car_image.jpg"
+    )
     mock_model.assert_called_once_with(
         {"text": "Hello, world!", "img": ".assets/car_image.jpg"}
     )

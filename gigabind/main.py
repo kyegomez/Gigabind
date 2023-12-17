@@ -23,6 +23,23 @@ def detect_device():
 
 
 class Gigabind(nn.Module):
+    """Gigabind model
+
+    Args:
+        lora (bool, optional): Whether to use lora. Defaults to False.
+        linear_probing (bool, optional): Whether to use linear probing. Defaults to False.
+        device (Callable, optional): Device to run the model on. Defaults to detect_device.
+        load_head_post_proc_finetuned (bool, optional): Whether to load the head and post processors. Defaults to True.
+
+    Examples:
+        >>> from gigabind import Gigabind
+        >>> model = Gigabind()
+        >>> model.run(text="Hello World!")
+        {'embeddings': tensor([[-0.0000, -0.0000, -0.0000,  ..., -0.0000, -0.0000, -0.0000]]), 'modality_type': ['text'], 'model_name': 'gigabind-huge'}
+
+
+    """
+
     def __init__(
         self,
         lora=False,
@@ -30,18 +47,21 @@ class Gigabind(nn.Module):
         device: Callable = detect_device,
         load_head_post_proc_finetuned=True,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.lora = lora
         self.linear_probing = linear_probing
         self.device = device
-        self.load_head_post_proc_finetuned = load_head_post_proc_finetuned
+        self.load_head_post_proc_finetuned = (
+            load_head_post_proc_finetuned
+        )
 
         # Ensure configuration is valid
         assert not (linear_probing and lora), (
-            "Linear probing is a subset of lora training procedure for ImageBind. "
-            "Cannot set both linear_probing=True and lora=True. "
+            "Linear probing is a subset of lora training procedure"
+            " for ImageBind. Cannot set both linear_probing=True and"
+            " lora=True. "
         )
 
         # Factor adjustment based on lora settings
@@ -59,7 +79,10 @@ class Gigabind(nn.Module):
                     rank=4,
                     # layer_idxs={ModalityType.TEXT: [0, 1, 2, 3, 4, 5, 6, 7, 8],
                     #             ModalityType.VISION: [0, 1, 2, 3, 4, 5, 6, 7, 8]},
-                    modality_names=[ModalityType.TEXT, ModalityType.VISION],
+                    modality_names=[
+                        ModalityType.TEXT,
+                        ModalityType.VISION,
+                    ],
                 )
             )
 
@@ -75,13 +98,17 @@ class Gigabind(nn.Module):
                 load_module(
                     self.model.modality_postprocessors,
                     module_name="postprocessors",
-                    checkpoint_dir=".checkpoints/lora/550_epochs_lora",
+                    checkpoint_dir=(
+                        ".checkpoints/lora/550_epochs_lora"
+                    ),
                     postfix="_dreambooth_last",
                 )
                 load_module(
                     self.model.modality_heads,
                     module_name="heads",
-                    checkpoint_dir=".checkpoints/lora/550_epochs_lora",
+                    checkpoint_dir=(
+                        ".checkpoints/lora/550_epochs_lora"
+                    ),
                     postfix="_dreambooth_last",
                 )
         elif linear_probing:
@@ -97,7 +124,12 @@ class Gigabind(nn.Module):
         self.model.to(device)
 
     def run(
-        self, text: str = None, img: str = None, audio: str = None, *args, **kwargs
+        self,
+        text: str = None,
+        img: str = None,
+        audio: str = None,
+        *args,
+        **kwargs,
     ):
         """Run the model
 
@@ -128,7 +160,9 @@ class Gigabind(nn.Module):
                 "modality_type": list(
                     inputs.keys()
                 ),  # The types of modalities in the inputs
-                "model_name": "gigabind-huge",  # The name of the model
+                "model_name": (
+                    "gigabind-huge"
+                ),  # The name of the model
             }
 
             return response

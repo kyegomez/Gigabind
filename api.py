@@ -21,8 +21,8 @@ load_head_post_proc_finetuned = True
 
 # Ensure configuration is valid
 assert not (linear_probing and lora), (
-    "Linear probing is a subset of lora training procedure for ImageBind. "
-    "Cannot set both linear_probing=True and lora=True. "
+    "Linear probing is a subset of lora training procedure for"
+    " ImageBind. Cannot set both linear_probing=True and lora=True. "
 )
 
 # Factor adjustment based on lora settings
@@ -95,18 +95,23 @@ def get_embeddings(request: EmbeddingRequest):
             )
 
         if request.image_paths is not None:
-            inputs[ModalityType.VISION] = data.load_and_transform_vision_data(
-                request.image_paths, device, to_tensor=True
+            inputs[ModalityType.VISION] = (
+                data.load_and_transform_vision_data(
+                    request.image_paths, device, to_tensor=True
+                )
             )
 
         if request.audio_paths is not None:
-            inputs[ModalityType.AUDIO] = data.load_and_transform_audio_data(
-                request.audio_paths, device
+            inputs[ModalityType.AUDIO] = (
+                data.load_and_transform_audio_data(
+                    request.audio_paths, device
+                )
             )
 
         if not inputs:
             raise ValueError(
-                "At least one type of input (text, image, or audio) must be provided."
+                "At least one type of input (text, image, or audio)"
+                " must be provided."
             )
 
         with torch.no_grad():
@@ -138,7 +143,10 @@ def get_embeddings(request: EmbeddingRequest):
             ).tolist()
 
         # Check if both vision and text modalities are present
-        if ModalityType.VISION in inputs and ModalityType.TEXT in inputs:
+        if (
+            ModalityType.VISION in inputs
+            and ModalityType.TEXT in inputs
+        ):
             embeddings_dict["vision_x_text"] = torch.softmax(
                 embeddings[ModalityType.VISION]
                 @ embeddings[ModalityType.TEXT].T
@@ -147,7 +155,10 @@ def get_embeddings(request: EmbeddingRequest):
             ).tolist()
 
         # Check if both audio and text modalities are present
-        if ModalityType.AUDIO in inputs and ModalityType.TEXT in inputs:
+        if (
+            ModalityType.AUDIO in inputs
+            and ModalityType.TEXT in inputs
+        ):
             embeddings_dict["audio_x_text"] = torch.softmax(
                 embeddings[ModalityType.AUDIO]
                 @ embeddings[ModalityType.TEXT].T
@@ -156,9 +167,13 @@ def get_embeddings(request: EmbeddingRequest):
             ).tolist()
 
         # Check if both vision and audio modalities are present
-        if ModalityType.VISION in inputs and ModalityType.AUDIO in inputs:
+        if (
+            ModalityType.VISION in inputs
+            and ModalityType.AUDIO in inputs
+        ):
             embeddings_dict["vision_x_audio"] = torch.softmax(
-                embeddings[ModalityType.VISION] @ embeddings[ModalityType.AUDIO].T,
+                embeddings[ModalityType.VISION]
+                @ embeddings[ModalityType.AUDIO].T,
                 dim=-1,
             ).tolist()
 

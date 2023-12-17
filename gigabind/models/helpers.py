@@ -32,14 +32,21 @@ class LearnableLogitScaling(nn.Module):
         self.max_logit_scale = max_logit_scale
         self.logit_scale_init = logit_scale_init
         self.learnable = learnable
-        log_logit_scale = torch.ones([]) * np.log(self.logit_scale_init)
+        log_logit_scale = torch.ones([]) * np.log(
+            self.logit_scale_init
+        )
         if learnable:
             self.log_logit_scale = nn.Parameter(log_logit_scale)
         else:
             self.register_buffer("log_logit_scale", log_logit_scale)
 
     def forward(self, x):
-        return torch.clip(self.log_logit_scale.exp(), max=self.max_logit_scale) * x
+        return (
+            torch.clip(
+                self.log_logit_scale.exp(), max=self.max_logit_scale
+            )
+            * x
+        )
 
     def extra_repr(self):
         st = (
@@ -66,7 +73,9 @@ class VerboseNNModule(nn.Module):
     """
 
     @staticmethod
-    def get_readable_tensor_repr(name: str, tensor: torch.Tensor) -> str:
+    def get_readable_tensor_repr(
+        name: str, tensor: torch.Tensor
+    ) -> str:
         st = (
             "("
             + name
@@ -99,7 +108,9 @@ class VerboseNNModule(nn.Module):
 
 
 def cast_if_src_dtype(
-    tensor: torch.Tensor, src_dtype: torch.dtype, tgt_dtype: torch.dtype
+    tensor: torch.Tensor,
+    src_dtype: torch.dtype,
+    tgt_dtype: torch.dtype,
 ):
     updated = False
     if tensor.dtype == src_dtype:

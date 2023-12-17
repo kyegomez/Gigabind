@@ -19,7 +19,8 @@ try:
 except ImportError:
     plt = None
     logging.warning(
-        "Matplotlib not installed. This is not needed if you run this script as --headless"
+        "Matplotlib not installed. This is not needed if you run this"
+        " script as --headless"
     )
 
 import lightning as L
@@ -36,7 +37,11 @@ from torchvision import transforms
 
 from gigabind.models import imagebind_model
 from gigabind.models import lora as LoRA
-from gigabind.models.imagebind_model import ModalityType, load_module, save_module
+from gigabind.models.imagebind_model import (
+    ModalityType,
+    load_module,
+    save_module,
+)
 
 logging.basicConfig(level=logging.INFO, force=True)
 
@@ -75,18 +80,23 @@ class ImageBindTrain(L.LightningModule):
     ):
         super().__init__()
         assert not (linear_probing and lora), (
-            "Linear probing is a subset of LoRA training procedure for ImageBind. "
-            "Cannot set both linear_probing=True and lora=True. "
-            "Linear probing stores params in lora_checkpoint_dir"
+            "Linear probing is a subset of LoRA training procedure"
+            " for ImageBind. Cannot set both linear_probing=True and"
+            " lora=True. Linear probing stores params in"
+            " lora_checkpoint_dir"
         )
         self.save_hyperparameters()
 
         # Load full pretrained ImageBind model
         self.model = imagebind_model.imagebind_huge(pretrained=True)
         if lora:
-            for modality_preprocessor in self.model.modality_preprocessors.children():
+            for (
+                modality_preprocessor
+            ) in self.model.modality_preprocessors.children():
                 modality_preprocessor.requires_grad_(False)
-            for modality_trunk in self.model.modality_trunks.children():
+            for (
+                modality_trunk
+            ) in self.model.modality_trunks.children():
                 modality_trunk.requires_grad_(False)
 
             self.model.modality_trunks.update(
@@ -98,7 +108,8 @@ class ImageBindTrain(L.LightningModule):
                 )
             )
             LoRA.load_lora_modality_trunks(
-                self.model.modality_trunks, checkpoint_dir=lora_checkpoint_dir
+                self.model.modality_trunks,
+                checkpoint_dir=lora_checkpoint_dir,
             )
 
             # Load postprocessors & heads
@@ -113,11 +124,17 @@ class ImageBindTrain(L.LightningModule):
                 checkpoint_dir=lora_checkpoint_dir,
             )
         elif linear_probing:
-            for modality_preprocessor in self.model.modality_preprocessors.children():
+            for (
+                modality_preprocessor
+            ) in self.model.modality_preprocessors.children():
                 modality_preprocessor.requires_grad_(False)
-            for modality_trunk in self.model.modality_trunks.children():
+            for (
+                modality_trunk
+            ) in self.model.modality_trunks.children():
                 modality_trunk.requires_grad_(False)
-            for modality_postprocessor in self.model.modality_postprocessors.children():
+            for (
+                modality_postprocessor
+            ) in self.model.modality_postprocessors.children():
                 modality_postprocessor.requires_grad_(False)
 
             load_module(
@@ -138,7 +155,9 @@ class ImageBindTrain(L.LightningModule):
             betas=self.hparams.momentum_betas,
         )
         lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=self.hparams.max_epochs, eta_min=self.hparams.lr / 50
+            optimizer,
+            T_max=self.hparams.max_epochs,
+            eta_min=self.hparams.lr / 50,
         )
         return [optimizer], [lr_scheduler]
 
@@ -146,13 +165,16 @@ class ImageBindTrain(L.LightningModule):
         data_a, class_a, data_b, class_b = batch
 
         # class_a is always "vision" according to ImageBind
-        feats_a = [self.model({class_a[0]: data_a_i}) for data_a_i in data_a]
+        feats_a = [
+            self.model({class_a[0]: data_a_i}) for data_a_i in data_a
+        ]
         feats_a_tensor = torch.cat(
             [list(dict_.values())[0] for dict_ in feats_a], dim=0
         )
         # class_b could be any modality
         feats_b = [
-            self.model({class_b[idx]: data_b_i}) for idx, data_b_i in enumerate(data_b)
+            self.model({class_b[idx]: data_b_i})
+            for idx, data_b_i in enumerate(data_b)
         ]
         feats_b_tensor = torch.cat(
             [list(dict_.values())[0] for dict_ in feats_b], dim=0
@@ -166,7 +188,9 @@ class ImageBindTrain(L.LightningModule):
             temperatures = [1, self.hparams.temperature]
             contrast = ["self", "cross"]
         else:
-            feats_a_b_tensor = torch.cat([feats_a_tensor, feats_b_tensor], dim=0)
+            feats_a_b_tensor = torch.cat(
+                [feats_a_tensor, feats_b_tensor], dim=0
+            )
             feats_tensors = [feats_a_b_tensor]
             temperatures = [self.hparams.temperature]
             contrast = ["cross"]
@@ -176,18 +200,26 @@ class ImageBindTrain(L.LightningModule):
         for feats_idx, feats_tensor in enumerate(feats_tensors):
             # Calculate cosine similarity
             cos_sim = F.cosine_similarity(
-                feats_tensor[:, None, :], feats_tensor[None, :, :], dim=-1
+                feats_tensor[:, None, :],
+                feats_tensor[None, :, :],
+                dim=-1,
             )
             # Mask out cosine similarity to itself
             self_mask = torch.eye(
-                cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device
+                cos_sim.shape[0],
+                dtype=torch.bool,
+                device=cos_sim.device,
             )
             cos_sim.masked_fill_(self_mask, -9e15)
             # Find positive example -> batch_size//2 away from the original example
-            pos_mask = self_mask.roll(shifts=cos_sim.shape[0] // 2, dims=0)
+            pos_mask = self_mask.roll(
+                shifts=cos_sim.shape[0] // 2, dims=0
+            )
             # InfoNCE loss
             cos_sim = cos_sim / temperatures[feats_idx]
-            nll = -cos_sim[pos_mask] + torch.logsumexp(cos_sim, dim=-1)
+            nll = -cos_sim[pos_mask] + torch.logsumexp(
+                cos_sim, dim=-1
+            )
             nll = nll.mean()
             if not dual_nll:
                 dual_nll = nll
@@ -211,7 +243,9 @@ class ImageBindTrain(L.LightningModule):
                 ],  # First position positive example
                 dim=-1,
             )
-            sim_argsort = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
+            sim_argsort = comb_sim.argsort(
+                dim=-1, descending=True
+            ).argmin(dim=-1)
             # Logging ranking metrics
             self.log(
                 mode + "_acc_top1",
@@ -283,10 +317,16 @@ class ImageBindTrain(L.LightningModule):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Train the ImageBind model with PyTorch Lightning and LoRA."
+        description=(
+            "Train the ImageBind model with PyTorch Lightning and"
+            " LoRA."
+        )
     )
     parser.add_argument(
-        "--seed", type=int, default=43, help="Random seed for reproducibility"
+        "--seed",
+        type=int,
+        default=43,
+        help="Random seed for reproducibility",
     )
     parser.add_argument(
         "--device",
@@ -327,7 +367,10 @@ def parse_args():
         help="Loggers to use for logging",
     )
     parser.add_argument(
-        "--loggers_dir", type=str, default="./.logs", help="Directory to save the logs"
+        "--loggers_dir",
+        type=str,
+        default="./.logs",
+        help="Directory to save the logs",
     )
     parser.add_argument(
         "--headless",
@@ -336,7 +379,10 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--max_epochs", type=int, default=500, help="Maximum number of epochs to train"
+        "--max_epochs",
+        type=int,
+        default=500,
+        help="Maximum number of epochs to train",
     )
     parser.add_argument(
         "--batch_size",
@@ -344,8 +390,15 @@ def parse_args():
         default=12,
         help="Batch size for training and validation",
     )
-    parser.add_argument("--lr", type=float, default=5e-6, help="Learning rate")
-    parser.add_argument("--weight_decay", type=float, default=1e-4, help="Weight decay")
+    parser.add_argument(
+        "--lr", type=float, default=5e-6, help="Learning rate"
+    )
+    parser.add_argument(
+        "--weight_decay",
+        type=float,
+        default=1e-4,
+        help="Weight decay",
+    )
     parser.add_argument(
         "--momentum_betas",
         nargs=2,
@@ -354,7 +407,10 @@ def parse_args():
         help="Momentum beta 1 and 2 for Adam optimizer",
     )
     parser.add_argument(
-        "--gradient_clip_val", type=float, default=1.0, help="Gradient clipping value"
+        "--gradient_clip_val",
+        type=float,
+        default=1.0,
+        help="Gradient clipping value",
     )
     parser.add_argument(
         "--temperature",
@@ -363,7 +419,10 @@ def parse_args():
         help="Temperature parameter for InfoNCE loss",
     )
     parser.add_argument(
-        "--num_workers", type=int, default=0, help="Number of workers for data loading"
+        "--num_workers",
+        type=int,
+        default=0,
+        help="Number of workers for data loading",
     )
     parser.add_argument(
         "--self_contrast",
@@ -371,8 +430,12 @@ def parse_args():
         help="Use self-contrast on the image modality",
     )
 
-    parser.add_argument("--lora", action="store_true", help="Use LoRA")
-    parser.add_argument("--lora_rank", type=int, default=4, help="Rank of LoRA layers")
+    parser.add_argument(
+        "--lora", action="store_true", help="Use LoRA"
+    )
+    parser.add_argument(
+        "--lora_rank", type=int, default=4, help="Rank of LoRA layers"
+    )
     parser.add_argument(
         "--lora_checkpoint_dir",
         type=str,
@@ -384,53 +447,84 @@ def parse_args():
         nargs="+",
         type=str,
         default=["vision", "text"],
-        choices=["vision", "text", "audio", "thermal", "depth", "imu"],
+        choices=[
+            "vision",
+            "text",
+            "audio",
+            "thermal",
+            "depth",
+            "imu",
+        ],
         help="Modality names to apply LoRA",
     )
     parser.add_argument(
-        "--lora_layer_idxs", nargs="+", type=int, help="Layer indices to apply LoRA"
+        "--lora_layer_idxs",
+        nargs="+",
+        type=int,
+        help="Layer indices to apply LoRA",
     )
     parser.add_argument(
         "--lora_layer_idxs_vision",
         nargs="+",
         type=int,
-        help="Layer indices to apply LoRA for vision modality. Overrides lora_layer_idxs if specified",
+        help=(
+            "Layer indices to apply LoRA for vision modality."
+            " Overrides lora_layer_idxs if specified"
+        ),
     )
     parser.add_argument(
         "--lora_layer_idxs_text",
         nargs="+",
         type=int,
-        help="Layer indices to apply LoRA for text modality. Overrides lora_layer_idxs if specified",
+        help=(
+            "Layer indices to apply LoRA for text modality. Overrides"
+            " lora_layer_idxs if specified"
+        ),
     )
     parser.add_argument(
         "--lora_layer_idxs_audio",
         nargs="+",
         type=int,
-        help="Layer indices to apply LoRA for audio modality. Overrides lora_layer_idxs if specified",
+        help=(
+            "Layer indices to apply LoRA for audio modality."
+            " Overrides lora_layer_idxs if specified"
+        ),
     )
     parser.add_argument(
         "--lora_layer_idxs_thermal",
         nargs="+",
         type=int,
-        help="Layer indices to apply LoRA for thermal modality. Overrides lora_layer_idxs if specified",
+        help=(
+            "Layer indices to apply LoRA for thermal modality."
+            " Overrides lora_layer_idxs if specified"
+        ),
     )
     parser.add_argument(
         "--lora_layer_idxs_depth",
         nargs="+",
         type=int,
-        help="Layer indices to apply LoRA for depth modality. Overrides lora_layer_idxs if specified",
+        help=(
+            "Layer indices to apply LoRA for depth modality."
+            " Overrides lora_layer_idxs if specified"
+        ),
     )
     parser.add_argument(
         "--lora_layer_idxs_imu",
         nargs="+",
         type=int,
-        help="Layer indices to apply LoRA for imu modality. Overrides lora_layer_idxs if specified",
+        help=(
+            "Layer indices to apply LoRA for imu modality. Overrides"
+            " lora_layer_idxs if specified"
+        ),
     )
 
     parser.add_argument(
         "--linear_probing",
         action="store_true",
-        help="Freeze model and train the last layers of the head for each modality.",
+        help=(
+            "Freeze model and train the last layers of the head for"
+            " each modality."
+        ),
     )
 
     return parser.parse_args()
@@ -459,7 +553,9 @@ if __name__ == "__main__":
                 api_key=os.environ["COMET_API_KEY"],
                 workspace=os.environ["COMET_WORKSPACE"],
                 project_name=os.environ["COMET_PROJECT_NAME"],
-                experiment_name=os.environ.get("COMET_EXPERIMENT_NAME", None),
+                experiment_name=os.environ.get(
+                    "COMET_EXPERIMENT_NAME", None
+                ),
             )
             loggers.append(comet_logger)
         elif logger == "mlflow":
@@ -476,7 +572,9 @@ if __name__ == "__main__":
     # Set experiment properties
     seed_everything(args.seed, workers=True)
     torch.backends.cudnn.determinstic = True
-    device_name = args.device  # "cuda:0" if torch.cuda.is_available() else "cpu"
+    device_name = (
+        args.device
+    )  # "cuda:0" if torch.cuda.is_available() else "cpu"
     device = torch.device(device_name)
 
     contrast_transforms = transforms.Compose(
@@ -486,7 +584,10 @@ if __name__ == "__main__":
             transforms.RandomApply(
                 [
                     transforms.ColorJitter(
-                        brightness=0.5, contrast=0.5, saturation=0.5, hue=0.1
+                        brightness=0.5,
+                        contrast=0.5,
+                        saturation=0.5,
+                        hue=0.1,
                     )
                 ],
                 p=0.8,
@@ -509,19 +610,25 @@ if __name__ == "__main__":
 
         train_datasets.append(
             DreamBoothDataset(
-                root_dir=os.path.join(args.datasets_dir, "dreambooth", "dataset"),
+                root_dir=os.path.join(
+                    args.datasets_dir, "dreambooth", "dataset"
+                ),
                 split="train",
                 transform=ContrastiveTransformations(
-                    contrast_transforms, n_views=2 if args.self_contrast else 1
+                    contrast_transforms,
+                    n_views=2 if args.self_contrast else 1,
                 ),
             )
         )
         test_datasets.append(
             DreamBoothDataset(
-                root_dir=os.path.join(args.datasets_dir, "dreambooth", "dataset"),
+                root_dir=os.path.join(
+                    args.datasets_dir, "dreambooth", "dataset"
+                ),
                 split="test",
                 transform=ContrastiveTransformations(
-                    contrast_transforms, n_views=2 if args.self_contrast else 1
+                    contrast_transforms,
+                    n_views=2 if args.self_contrast else 1,
                 ),
             )
         )
@@ -553,15 +660,22 @@ if __name__ == "__main__":
     # Visualize some examples
     if not args.headless:
         NUM_IMAGES = args.batch_size
-        imgs = [torch.stack(train_dataset[idx][0], dim=0) for idx in range(NUM_IMAGES)]
+        imgs = [
+            torch.stack(train_dataset[idx][0], dim=0)
+            for idx in range(NUM_IMAGES)
+        ]
         imgs = torch.stack(imgs, dim=0)
         img_grid = torchvision.utils.make_grid(
-            imgs.reshape(-1, *imgs.shape[2:]), nrow=6, normalize=True, pad_value=0.9
+            imgs.reshape(-1, *imgs.shape[2:]),
+            nrow=6,
+            normalize=True,
+            pad_value=0.9,
         )
         img_grid = img_grid.permute(1, 2, 0)
         plt.figure(figsize=(10, 5))
         plt.title(
-            f"Augmented image examples of the available datasets: {args.datasets}"
+            "Augmented image examples of the available datasets:"
+            f" {args.datasets}"
         )
         plt.imshow(img_grid.cpu())
         plt.axis("off")
@@ -571,10 +685,19 @@ if __name__ == "__main__":
     # Parse indices of layers to apply LoRA
     lora_layer_idxs = {}
     lora_modality_names = []
-    modalities = ["vision", "text", "audio", "thermal", "depth", "imu"]
+    modalities = [
+        "vision",
+        "text",
+        "audio",
+        "thermal",
+        "depth",
+        "imu",
+    ]
     for modality_name in args.lora_modality_names:
         if modality_name in modalities:
-            modality_type = getattr(ModalityType, modality_name.upper())
+            modality_type = getattr(
+                ModalityType, modality_name.upper()
+            )
             lora_layer_idxs[modality_type] = getattr(
                 args, f"lora_layer_idxs_{modality_name}", None
             )
@@ -582,7 +705,9 @@ if __name__ == "__main__":
                 lora_layer_idxs[modality_type] = None
             lora_modality_names.append(modality_type)
         else:
-            raise ValueError(f"Unknown modality name: {modality_name}")
+            raise ValueError(
+                f"Unknown modality name: {modality_name}"
+            )
 
     # Train dataset
     model = ImageBindTrain(
@@ -598,7 +723,9 @@ if __name__ == "__main__":
         lora_rank=args.lora_rank,
         lora_checkpoint_dir=args.lora_checkpoint_dir,
         lora_layer_idxs=lora_layer_idxs if lora_layer_idxs else None,
-        lora_modality_names=lora_modality_names if lora_modality_names else None,
+        lora_modality_names=(
+            lora_modality_names if lora_modality_names else None
+        ),
         linear_probing=args.linear_probing,
     )
 
@@ -622,7 +749,11 @@ if __name__ == "__main__":
 
     trainer = Trainer(
         accelerator="gpu" if "cuda" in device_name else "cpu",
-        devices=1 if ":" not in device_name else [int(device_name.split(":")[1])],
+        devices=(
+            1
+            if ":" not in device_name
+            else [int(device_name.split(":")[1])]
+        ),
         deterministic=True,
         max_epochs=args.max_epochs,
         gradient_clip_val=args.gradient_clip_val,

@@ -33,7 +33,9 @@ def apply_lora_modality_trunks(
     return nn.ModuleDict(
         {
             modality_name: LoRA_SimpleTransformer(
-                modality_trunk, rank, layer_idxs.get(modality_name, None)
+                modality_trunk,
+                rank,
+                layer_idxs.get(modality_name, None),
             )
             for modality_name, modality_trunk in modality_trunks.items()
             if modality_name in modality_names
@@ -57,11 +59,13 @@ def save_lora_modality_trunks(
                     )
                 )
                 logging.info(
-                    f"Saved LoRA parameters for modality {modality_name} to {checkpoint_dir}."
+                    "Saved LoRA parameters for modality"
+                    f" {modality_name} to {checkpoint_dir}."
                 )
         except FileNotFoundError:
             logging.warning(
-                f"Could not save LoRA parameters for modality {modality_name} to {checkpoint_dir}."
+                "Could not save LoRA parameters for modality"
+                f" {modality_name} to {checkpoint_dir}."
             )
 
 
@@ -81,17 +85,21 @@ def load_lora_modality_trunks(
                     )
                 )
                 logging.info(
-                    f"Loaded LoRA parameters for modality {modality_name} from {checkpoint_dir}."
+                    "Loaded LoRA parameters for modality"
+                    f" {modality_name} from {checkpoint_dir}."
                 )
         except FileNotFoundError:
             logging.warning(
-                f"Could not find LoRA parameters for modality {modality_name} in {checkpoint_dir}."
+                "Could not find LoRA parameters for modality"
+                f" {modality_name} in {checkpoint_dir}."
             )
             logging.warning(
-                "If you are training the sub-model from scratch, this is expected."
+                "If you are training the sub-model from scratch, this"
+                " is expected."
             )
             logging.warning(
-                "If you are loading parts of a pre-trained model, this is expected for some modalities."
+                "If you are loading parts of a pre-trained model,"
+                " this is expected for some modalities."
             )
 
 
@@ -102,7 +110,9 @@ class _LoRALayer(nn.Module):
         self.w_a = w_a
         self.w_b = w_b
 
-    def forward(self, x: torch.Tensor, attn_mask: torch.Tensor, **kwargs):
+    def forward(
+        self, x: torch.Tensor, attn_mask: torch.Tensor, **kwargs
+    ):
         x = self.w(x, attn_mask=attn_mask) + self.w_b(self.w_a(x))
         return x
 
@@ -132,12 +142,17 @@ class LoRA_SimpleTransformer(nn.Module):
         super(LoRA_SimpleTransformer, self).__init__()
 
         assert rank > 0
-        self.base_dim = transformer_model.blocks[0].attn.in_proj_bias.size()[0] // 3
+        self.base_dim = (
+            transformer_model.blocks[0].attn.in_proj_bias.size()[0]
+            // 3
+        )
         dim = self.base_dim
         if lora_layer_idxs is not None:
             self.lora_layer_idxs = lora_layer_idxs
         else:
-            self.lora_layer_idxs = list(range(len(transformer_model.blocks)))
+            self.lora_layer_idxs = list(
+                range(len(transformer_model.blocks))
+            )
         # create for storage, then we can init them or load weights
         self.w_As = []  # These are linear layers
         self.w_Bs = []
@@ -156,7 +171,9 @@ class LoRA_SimpleTransformer(nn.Module):
             self.w_As.append(w_a_linear_qkv)
             self.w_Bs.append(w_b_linear_qkv)
             blk.prev_attn = blk.attn
-            blk.attn = _LoRALayer(blk.prev_attn, w_a_linear_qkv, w_b_linear_qkv)
+            blk.attn = _LoRALayer(
+                blk.prev_attn, w_a_linear_qkv, w_b_linear_qkv
+            )
 
         if self.training:
             self.reset_parameters()
@@ -171,8 +188,14 @@ class LoRA_SimpleTransformer(nn.Module):
         assert filename.endswith(".safetensors")
 
         num_layer = len(self.w_As)  # actually, it is half
-        a_tensors = {f"w_a_{i:03d}": self.w_As[i].weight for i in range(num_layer)}
-        b_tensors = {f"w_b_{i:03d}": self.w_Bs[i].weight for i in range(num_layer)}
+        a_tensors = {
+            f"w_a_{i:03d}": self.w_As[i].weight
+            for i in range(num_layer)
+        }
+        b_tensors = {
+            f"w_b_{i:03d}": self.w_Bs[i].weight
+            for i in range(num_layer)
+        }
 
         merged_dict = {**a_tensors, **b_tensors}
         save_file(merged_dict, filename)

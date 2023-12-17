@@ -30,7 +30,10 @@ from gigabind.models.multimodal_preprocessors import (
     TextPreprocessor,
     ThermalPreprocessor,
 )
-from gigabind.models.transformer import MultiheadAttention, SimpleTransformer
+from gigabind.models.transformer import (
+    MultiheadAttention,
+    SimpleTransformer,
+)
 
 ModalityType = SimpleNamespace(
     VISION="vision",
@@ -80,21 +83,23 @@ class ImageBindModel(nn.Module):
     ):
         super().__init__()
 
-        self.modality_preprocessors = self._create_modality_preprocessors(
-            video_frames,
-            vision_embed_dim,
-            kernel_size,
-            text_embed_dim,
-            audio_embed_dim,
-            audio_kernel_size,
-            audio_stride,
-            audio_num_mel_bins,
-            audio_target_len,
-            depth_embed_dim,
-            depth_kernel_size,
-            thermal_embed_dim,
-            thermal_kernel_size,
-            imu_embed_dim,
+        self.modality_preprocessors = (
+            self._create_modality_preprocessors(
+                video_frames,
+                vision_embed_dim,
+                kernel_size,
+                text_embed_dim,
+                audio_embed_dim,
+                audio_kernel_size,
+                audio_stride,
+                audio_num_mel_bins,
+                audio_target_len,
+                depth_embed_dim,
+                depth_kernel_size,
+                thermal_embed_dim,
+                thermal_kernel_size,
+                imu_embed_dim,
+            )
         )
 
         self.modality_trunks = self._create_modality_trunks(
@@ -132,8 +137,8 @@ class ImageBindModel(nn.Module):
             imu_embed_dim,
         )
 
-        self.modality_postprocessors = self._create_modality_postprocessors(
-            out_embed_dim
+        self.modality_postprocessors = (
+            self._create_modality_postprocessors(out_embed_dim)
         )
 
     def _create_modality_preprocessors(
@@ -168,7 +173,9 @@ class ImageBindModel(nn.Module):
         rgbt_preprocessor = RGBDTPreprocessor(
             img_size=[3, video_frames, 224, 224],
             num_cls_tokens=1,
-            pos_embed_fn=partial(SpatioTemporalPosEmbeddingHelper, learnable=True),
+            pos_embed_fn=partial(
+                SpatioTemporalPosEmbeddingHelper, learnable=True
+            ),
             rgbt_stem=rgbt_stem,
             depth_stem=None,
         )
@@ -195,7 +202,9 @@ class ImageBindModel(nn.Module):
         audio_preprocessor = AudioPreprocessor(
             img_size=[1, audio_num_mel_bins, audio_target_len],
             num_cls_tokens=1,
-            pos_embed_fn=partial(SpatioTemporalPosEmbeddingHelper, learnable=True),
+            pos_embed_fn=partial(
+                SpatioTemporalPosEmbeddingHelper, learnable=True
+            ),
             audio_stem=audio_stem,
         )
 
@@ -215,7 +224,9 @@ class ImageBindModel(nn.Module):
         depth_preprocessor = RGBDTPreprocessor(
             img_size=[1, 224, 224],
             num_cls_tokens=1,
-            pos_embed_fn=partial(SpatioTemporalPosEmbeddingHelper, learnable=True),
+            pos_embed_fn=partial(
+                SpatioTemporalPosEmbeddingHelper, learnable=True
+            ),
             rgbt_stem=None,
             depth_stem=depth_stem,
         )
@@ -230,12 +241,16 @@ class ImageBindModel(nn.Module):
                     bias=False,
                 ),
             ],
-            norm_layer=nn.LayerNorm(normalized_shape=thermal_embed_dim),
+            norm_layer=nn.LayerNorm(
+                normalized_shape=thermal_embed_dim
+            ),
         )
         thermal_preprocessor = ThermalPreprocessor(
             img_size=[1, 224, 224],
             num_cls_tokens=1,
-            pos_embed_fn=partial(SpatioTemporalPosEmbeddingHelper, learnable=True),
+            pos_embed_fn=partial(
+                SpatioTemporalPosEmbeddingHelper, learnable=True
+            ),
             thermal_stem=thermal_stem,
         )
 
@@ -255,7 +270,9 @@ class ImageBindModel(nn.Module):
             num_cls_tokens=1,
             kernel_size=8,
             embed_dim=imu_embed_dim,
-            pos_embed_fn=partial(SpatioTemporalPosEmbeddingHelper, learnable=True),
+            pos_embed_fn=partial(
+                SpatioTemporalPosEmbeddingHelper, learnable=True
+            ),
             imu_stem=imu_stem,
         )
 
@@ -296,7 +313,12 @@ class ImageBindModel(nn.Module):
         imu_drop_path=0.7,
     ):
         def instantiate_trunk(
-            embed_dim, num_blocks, num_heads, pre_transformer_ln, add_bias_kv, drop_path
+            embed_dim,
+            num_blocks,
+            num_heads,
+            pre_transformer_ln,
+            add_bias_kv,
+            drop_path,
         ):
             return SimpleTransformer(
                 embed_dim=embed_dim,
@@ -311,12 +333,16 @@ class ImageBindModel(nn.Module):
                     add_bias_kv=add_bias_kv,
                 ),
                 pre_transformer_layer=nn.Sequential(
-                    nn.LayerNorm(embed_dim, eps=1e-6)
-                    if pre_transformer_ln
-                    else nn.Identity(),
+                    (
+                        nn.LayerNorm(embed_dim, eps=1e-6)
+                        if pre_transformer_ln
+                        else nn.Identity()
+                    ),
                     EinOpsRearrange("b l d -> l b d"),
                 ),
-                post_transformer_layer=EinOpsRearrange("l b d -> b l d"),
+                post_transformer_layer=EinOpsRearrange(
+                    "l b d -> b l d"
+                ),
             )
 
         modality_trunks = {}
@@ -391,7 +417,9 @@ class ImageBindModel(nn.Module):
 
         modality_heads[ModalityType.TEXT] = SelectEOSAndProject(
             proj=nn.Sequential(
-                nn.LayerNorm(normalized_shape=text_embed_dim, eps=1e-6),
+                nn.LayerNorm(
+                    normalized_shape=text_embed_dim, eps=1e-6
+                ),
                 nn.Linear(text_embed_dim, out_embed_dim, bias=False),
             )
         )
@@ -409,7 +437,9 @@ class ImageBindModel(nn.Module):
         )
 
         modality_heads[ModalityType.THERMAL] = nn.Sequential(
-            nn.LayerNorm(normalized_shape=thermal_embed_dim, eps=1e-6),
+            nn.LayerNorm(
+                normalized_shape=thermal_embed_dim, eps=1e-6
+            ),
             SelectElement(index=0),
             nn.Linear(thermal_embed_dim, out_embed_dim, bias=False),
         )
@@ -426,25 +456,35 @@ class ImageBindModel(nn.Module):
     def _create_modality_postprocessors(self, out_embed_dim):
         modality_postprocessors = {}
 
-        modality_postprocessors[ModalityType.VISION] = Normalize(dim=-1)
+        modality_postprocessors[ModalityType.VISION] = Normalize(
+            dim=-1
+        )
         modality_postprocessors[ModalityType.TEXT] = nn.Sequential(
             Normalize(dim=-1), LearnableLogitScaling(learnable=True)
         )
         modality_postprocessors[ModalityType.AUDIO] = nn.Sequential(
             Normalize(dim=-1),
-            LearnableLogitScaling(logit_scale_init=20.0, learnable=False),
+            LearnableLogitScaling(
+                logit_scale_init=20.0, learnable=False
+            ),
         )
         modality_postprocessors[ModalityType.DEPTH] = nn.Sequential(
             Normalize(dim=-1),
-            LearnableLogitScaling(logit_scale_init=5.0, learnable=False),
+            LearnableLogitScaling(
+                logit_scale_init=5.0, learnable=False
+            ),
         )
         modality_postprocessors[ModalityType.THERMAL] = nn.Sequential(
             Normalize(dim=-1),
-            LearnableLogitScaling(logit_scale_init=10.0, learnable=False),
+            LearnableLogitScaling(
+                logit_scale_init=10.0, learnable=False
+            ),
         )
         modality_postprocessors[ModalityType.IMU] = nn.Sequential(
             Normalize(dim=-1),
-            LearnableLogitScaling(logit_scale_init=5.0, learnable=False),
+            LearnableLogitScaling(
+                logit_scale_init=5.0, learnable=False
+            ),
         )
 
         return nn.ModuleDict(modality_postprocessors)
@@ -462,18 +502,20 @@ class ImageBindModel(nn.Module):
                 )
 
             if modality_value is not None:
-                modality_value = self.modality_preprocessors[modality_key](
-                    **{modality_key: modality_value}
-                )
+                modality_value = self.modality_preprocessors[
+                    modality_key
+                ](**{modality_key: modality_value})
                 trunk_inputs = modality_value["trunk"]
                 head_inputs = modality_value["head"]
-                modality_value = self.modality_trunks[modality_key](**trunk_inputs)
+                modality_value = self.modality_trunks[modality_key](
+                    **trunk_inputs
+                )
                 modality_value = self.modality_heads[modality_key](
                     modality_value, **head_inputs
                 )
-                modality_value = self.modality_postprocessors[modality_key](
-                    modality_value
-                )
+                modality_value = self.modality_postprocessors[
+                    modality_key
+                ](modality_value)
 
                 if reduce_list:
                     modality_value = modality_value.reshape(B, S, -1)
@@ -500,7 +542,8 @@ def imagebind_huge(pretrained=False):
     if pretrained:
         if not os.path.exists(".checkpoints/imagebind_huge.pth"):
             print(
-                "Downloading imagebind weights to .checkpoints/imagebind_huge.pth ..."
+                "Downloading imagebind weights to"
+                " .checkpoints/imagebind_huge.pth ..."
             )
             os.makedirs(".checkpoints", exist_ok=True)
             torch.hub.download_url_to_file(
@@ -509,7 +552,9 @@ def imagebind_huge(pretrained=False):
                 progress=True,
             )
 
-        model.load_state_dict(torch.load(".checkpoints/imagebind_huge.pth"))
+        model.load_state_dict(
+            torch.load(".checkpoints/imagebind_huge.pth")
+        )
 
     return model
 
@@ -525,13 +570,18 @@ def save_module(
         torch.save(
             module_dict.state_dict(),
             os.path.join(
-                checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}"
+                checkpoint_dir,
+                f"imagebind-{module_name}{postfix}.{extension}",
             ),
         )
-        logging.info(f"Saved parameters for module {module_name} to {checkpoint_dir}.")
+        logging.info(
+            f"Saved parameters for module {module_name} to"
+            f" {checkpoint_dir}."
+        )
     except FileNotFoundError:
         logging.warning(
-            f"Could not save module parameters for {module_name} to {checkpoint_dir}."
+            f"Could not save module parameters for {module_name} to"
+            f" {checkpoint_dir}."
         )
 
 
@@ -546,15 +596,18 @@ def load_module(
         module_dict.load_state_dict(
             torch.load(
                 os.path.join(
-                    checkpoint_dir, f"imagebind-{module_name}{postfix}.{extension}"
+                    checkpoint_dir,
+                    f"imagebind-{module_name}{postfix}.{extension}",
                 )
             ),
             strict=False,
         )
         logging.info(
-            f"Loaded parameters for module {module_name} from {checkpoint_dir}."
+            f"Loaded parameters for module {module_name} from"
+            f" {checkpoint_dir}."
         )
     except FileNotFoundError:
         logging.warning(
-            f"Could not load module parameters for {module_name} from {checkpoint_dir}."
+            f"Could not load module parameters for {module_name} from"
+            f" {checkpoint_dir}."
         )

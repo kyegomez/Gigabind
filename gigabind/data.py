@@ -13,7 +13,9 @@ import torch.nn as nn
 import torchaudio
 from PIL import Image
 from pytorchvideo import transforms as pv_transforms
-from pytorchvideo.data.clip_sampling import ConstantClipsPerVideoSampler
+from pytorchvideo.data.clip_sampling import (
+    ConstantClipsPerVideoSampler,
+)
 from pytorchvideo.data.encoded_video import EncodedVideo
 from torchvision import transforms
 from torchvision.transforms._transforms_video import NormalizeVideo
@@ -25,7 +27,9 @@ DEFAULT_AUDIO_FRAME_SHIFT_MS = 10  # in milliseconds
 BPE_PATH = "bpe/bpe_simple_vocab_16e6.txt.gz"
 
 
-def waveform2melspec(waveform, sample_rate, num_mel_bins, target_length):
+def waveform2melspec(
+    waveform, sample_rate, num_mel_bins, target_length
+):
     # Based on https://github.com/YuanGongND/ast/blob/d7d8b4b8e06cdaeb6c843cdb38794c1c7692234c/src/dataloader.py#L102
     waveform -= waveform.mean()
     fbank = torchaudio.compliance.kaldi.fbank(
@@ -47,15 +51,19 @@ def waveform2melspec(waveform, sample_rate, num_mel_bins, target_length):
     # if p is too large (say >20%), flash a warning
     if abs(p) / n_frames > 0.2:
         logging.warning(
-            "Large gap between audio n_frames(%d) and "
-            "target_length (%d). Is the audio_target_length "
-            "setting correct?",
+            (
+                "Large gap between audio n_frames(%d) and "
+                "target_length (%d). Is the audio_target_length "
+                "setting correct?"
+            ),
             n_frames,
             target_length,
         )
     # cut and pad
     if p > 0:
-        fbank = torch.nn.functional.pad(fbank, (0, p), mode="constant", value=0)
+        fbank = torch.nn.functional.pad(
+            fbank, (0, p), mode="constant", value=0
+        )
     elif p < 0:
         fbank = fbank[:, 0:target_length]
     # Convert to [1, mel_bins, num_frames] shape, essentially like a 1
@@ -70,12 +78,16 @@ def get_clip_timepoints(clip_sampler, duration):
     is_last_clip = False
     end = 0.0
     while not is_last_clip:
-        start, end, _, _, is_last_clip = clip_sampler(end, duration, annotation=None)
+        start, end, _, _, is_last_clip = clip_sampler(
+            end, duration, annotation=None
+        )
         all_clips_timepoints.append((start, end))
     return all_clips_timepoints
 
 
-def load_and_transform_vision_data(image_paths, device, to_tensor=True):
+def load_and_transform_vision_data(
+    image_paths, device, to_tensor=True
+):
     if image_paths is None:
         return None
 
@@ -85,7 +97,8 @@ def load_and_transform_vision_data(image_paths, device, to_tensor=True):
             data_transform = transforms.Compose(
                 [
                     transforms.Resize(
-                        224, interpolation=transforms.InterpolationMode.BICUBIC
+                        224,
+                        interpolation=transforms.InterpolationMode.BICUBIC,
                     ),
                     transforms.CenterCrop(224),
                     transforms.ToTensor(),
@@ -99,7 +112,8 @@ def load_and_transform_vision_data(image_paths, device, to_tensor=True):
             data_transform = transforms.Compose(
                 [
                     transforms.Resize(
-                        224, interpolation=transforms.InterpolationMode.BICUBIC
+                        224,
+                        interpolation=transforms.InterpolationMode.BICUBIC,
                     ),
                     transforms.CenterCrop(224),
                 ]
@@ -113,7 +127,11 @@ def load_and_transform_vision_data(image_paths, device, to_tensor=True):
         else:
             image = data_transform(image)
             image_ouputs.append(image)
-    return image_ouputs if not to_tensor else torch.stack(image_ouputs, dim=0)
+    return (
+        image_ouputs
+        if not to_tensor
+        else torch.stack(image_ouputs, dim=0)
+    )
 
 
 def load_and_transform_text(text, device):
@@ -162,7 +180,10 @@ def load_and_transform_audio_data(
                 ),
             ]
             waveform_melspec = waveform2melspec(
-                waveform_clip, sample_rate, num_mel_bins, target_length
+                waveform_clip,
+                sample_rate,
+                num_mel_bins,
+                target_length,
             )
             all_clips.append(waveform_melspec)
 
@@ -194,7 +215,9 @@ def crop_boxes(boxes, x_offset, y_offset):
     return cropped_boxes
 
 
-def uniform_crop(images, size, spatial_idx, boxes=None, scale_size=None):
+def uniform_crop(
+    images, size, spatial_idx, boxes=None, scale_size=None
+):
     """
     Perform uniform spatial sampling on the images and corresponding boxes.
     Args:
@@ -223,9 +246,14 @@ def uniform_crop(images, size, spatial_idx, boxes=None, scale_size=None):
 
     if scale_size is not None:
         if width <= height:
-            width, height = scale_size, int(height / width * scale_size)
+            width, height = scale_size, int(
+                height / width * scale_size
+            )
         else:
-            width, height = int(width / height * scale_size), scale_size
+            width, height = (
+                int(width / height * scale_size),
+                scale_size,
+            )
         images = torch.nn.functional.interpolate(
             images,
             size=(height, width),
@@ -246,8 +274,14 @@ def uniform_crop(images, size, spatial_idx, boxes=None, scale_size=None):
             x_offset = 0
         elif spatial_idx == 2:
             x_offset = width - size
-    cropped = images[:, :, y_offset : y_offset + size, x_offset : x_offset + size]
-    cropped_boxes = crop_boxes(boxes, x_offset, y_offset) if boxes is not None else None
+    cropped = images[
+        :, :, y_offset : y_offset + size, x_offset : x_offset + size
+    ]
+    cropped_boxes = (
+        crop_boxes(boxes, x_offset, y_offset)
+        if boxes is not None
+        else None
+    )
     if ndim == 3:
         cropped = cropped.squeeze(0)
     return cropped, cropped_boxes
@@ -282,17 +316,29 @@ class SpatialCrop(nn.Module):
             videos: A list with 3x the number of elements. Each video converted
                 to C, T, H', W' by spatial cropping.
         """
-        assert isinstance(videos, list), "Must be a list of videos after temporal crops"
-        assert all([video.ndim == 4 for video in videos]), "Must be (C,T,H,W)"
+        assert isinstance(
+            videos, list
+        ), "Must be a list of videos after temporal crops"
+        assert all(
+            [video.ndim == 4 for video in videos]
+        ), "Must be (C,T,H,W)"
         res = []
         for video in videos:
             for spatial_idx in self.crops_to_ext:
-                res.append(uniform_crop(video, self.crop_size, spatial_idx)[0])
+                res.append(
+                    uniform_crop(video, self.crop_size, spatial_idx)[
+                        0
+                    ]
+                )
             if not self.flipped_crops_to_ext:
                 continue
             flipped_video = transforms.functional.hflip(video)
             for spatial_idx in self.flipped_crops_to_ext:
-                res.append(uniform_crop(flipped_video, self.crop_size, spatial_idx)[0])
+                res.append(
+                    uniform_crop(
+                        flipped_video, self.crop_size, spatial_idx
+                    )[0]
+                )
         return res
 
 
@@ -320,7 +366,9 @@ def load_and_transform_video_data(
     clip_sampler = ConstantClipsPerVideoSampler(
         clip_duration=clip_duration, clips_per_video=clips_per_video
     )
-    frame_sampler = pv_transforms.UniformTemporalSubsample(num_samples=clip_duration)
+    frame_sampler = pv_transforms.UniformTemporalSubsample(
+        num_samples=clip_duration
+    )
 
     for video_path in video_paths:
         video = EncodedVideo.from_path(
@@ -330,16 +378,22 @@ def load_and_transform_video_data(
             **{"sample_rate": sample_rate},
         )
 
-        all_clips_timepoints = get_clip_timepoints(clip_sampler, video.duration)
+        all_clips_timepoints = get_clip_timepoints(
+            clip_sampler, video.duration
+        )
 
         all_video = []
         for clip_timepoints in all_clips_timepoints:
             # Read the clip, get frames
-            clip = video.get_clip(clip_timepoints[0], clip_timepoints[1])
+            clip = video.get_clip(
+                clip_timepoints[0], clip_timepoints[1]
+            )
             if clip is None:
                 raise ValueError("No clip found")
             video_clip = frame_sampler(clip["video"])
-            video_clip = video_clip / 255.0  # since this is float, need 0-1
+            video_clip = (
+                video_clip / 255.0
+            )  # since this is float, need 0-1
 
             all_video.append(video_clip)
 

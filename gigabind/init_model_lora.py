@@ -11,8 +11,9 @@ def gigabind():
 
     # Ensure configuration is valid
     assert not (linear_probing and lora), (
-        "Linear probing is a subset of lora training procedure for ImageBind. "
-        "Cannot set both linear_probing=True and lora=True. "
+        "Linear probing is a subset of lora training procedure for"
+        " ImageBind. Cannot set both linear_probing=True and"
+        " lora=True. "
     )
 
     # Factor adjustment based on lora settings
@@ -30,7 +31,10 @@ def gigabind():
                 rank=4,
                 # layer_idxs={ModalityType.TEXT: [0, 1, 2, 3, 4, 5, 6, 7, 8],
                 #             ModalityType.VISION: [0, 1, 2, 3, 4, 5, 6, 7, 8]},
-                modality_names=[ModalityType.TEXT, ModalityType.VISION],
+                modality_names=[
+                    ModalityType.TEXT,
+                    ModalityType.VISION,
+                ],
             )
         )
 

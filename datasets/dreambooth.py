@@ -23,20 +23,28 @@ class DreamBoothDataset(Dataset):
         self.device = device
 
         self.classes = [
-            d for d in os.listdir(root_dir) if os.path.isdir(os.path.join(root_dir, d))
+            d
+            for d in os.listdir(root_dir)
+            if os.path.isdir(os.path.join(root_dir, d))
         ]
-        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
+        self.class_to_idx = {
+            cls: idx for idx, cls in enumerate(self.classes)
+        }
 
         self.paths = []
         for cls in self.classes:
             cls_dir = os.path.join(root_dir, cls)
             for filename in os.listdir(cls_dir):
                 if filename.endswith(".jpg"):
-                    self.paths.append((os.path.join(cls_dir, filename), cls))
+                    self.paths.append(
+                        (os.path.join(cls_dir, filename), cls)
+                    )
 
         # Split dataset
         train_paths, test_paths = train_test_split(
-            self.paths, train_size=train_size, random_state=random_seed
+            self.paths,
+            train_size=train_size,
+            random_state=random_seed,
         )
 
         if split == "train":
@@ -45,7 +53,8 @@ class DreamBoothDataset(Dataset):
             self.paths = test_paths
         else:
             raise ValueError(
-                f"Invalid split argument. Expected 'train' or 'test', got {split}"
+                "Invalid split argument. Expected 'train' or 'test',"
+                f" got {split}"
             )
 
     def __len__(self):
@@ -61,6 +70,8 @@ class DreamBoothDataset(Dataset):
             image = images[0]
             images = self.transform(image)
 
-        texts = data.load_and_transform_text([class_text], self.device)
+        texts = data.load_and_transform_text(
+            [class_text], self.device
+        )
 
         return images, ModalityType.VISION, texts, ModalityType.TEXT

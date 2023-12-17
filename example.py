@@ -15,8 +15,8 @@ device = "cpu"  # "cuda:0" if torch.cuda.is_available() else "cpu"
 load_head_post_proc_finetuned = True
 
 assert not (linear_probing and lora), (
-    "Linear probing is a subset of LoRA training procedure for ImageBind. "
-    "Cannot set both linear_probing=True and lora=True. "
+    "Linear probing is a subset of LoRA training procedure for"
+    " ImageBind. Cannot set both linear_probing=True and lora=True. "
 )
 
 if lora and not load_head_post_proc_finetuned:
@@ -26,7 +26,14 @@ else:
     # This assumes proper loading of all params but results in shift from original dist in case of LoRA
     lora_factor = 1
 
-text_list = ["bird", "car", "dog3", "dog5", "dog8", "grey_sloth_plushie"]
+text_list = [
+    "bird",
+    "car",
+    "dog3",
+    "dog5",
+    "dog8",
+    "grey_sloth_plushie",
+]
 image_paths = [
     ".assets/bird_image.jpg",
     ".assets/car_image.jpg",
@@ -89,11 +96,15 @@ model.to(device)
 
 # Load data
 inputs = {
-    ModalityType.TEXT: data.load_and_transform_text(text_list, device),
+    ModalityType.TEXT: data.load_and_transform_text(
+        text_list, device
+    ),
     ModalityType.VISION: data.load_and_transform_vision_data(
         image_paths, device, to_tensor=True
     ),
-    ModalityType.AUDIO: data.load_and_transform_audio_data(audio_paths, device),
+    ModalityType.AUDIO: data.load_and_transform_audio_data(
+        audio_paths, device
+    ),
 }
 
 with torch.no_grad():
@@ -120,6 +131,8 @@ print(
 print(
     "Vision x Audio: ",
     torch.softmax(
-        embeddings[ModalityType.VISION] @ embeddings[ModalityType.AUDIO].T, dim=-1
+        embeddings[ModalityType.VISION]
+        @ embeddings[ModalityType.AUDIO].T,
+        dim=-1,
     ),
 )
